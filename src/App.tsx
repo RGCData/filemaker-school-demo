@@ -6,28 +6,22 @@ import {
   BookOpen,
   CalendarDays,
   ChevronRight,
-  CircleGauge,
   ClipboardCheck,
   Clock3,
   GripVertical,
   Image,
-  LayoutDashboard,
   Menu,
   MoreHorizontal,
-  Palette,
   Search,
-  Settings,
   Sparkles,
   Users,
 } from "lucide-react";
 import {
   Link,
-  NavLink,
   Navigate,
   Outlet,
   Route,
   Routes,
-  useLocation,
   useParams,
 } from "react-router-dom";
 
@@ -44,7 +38,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -73,6 +66,12 @@ import {
   KanbanItemHandle,
   KanbanOverlay,
 } from "@/components/reui/kanban";
+import { AppSidebar } from "@/components/navigation/app-sidebar";
+import {
+  schoolBrand,
+  schoolNavigation,
+  schoolProfile,
+} from "@/components/navigation/navigation.config";
 import {
   announcements,
   assignments,
@@ -87,19 +86,6 @@ import {
   type Student,
 } from "@/data";
 
-const studentNav = [
-  { to: "/student", label: "Overview", icon: LayoutDashboard },
-  { to: "/student/classes", label: "Classes", icon: BookOpen },
-  { to: "/student/schedule", label: "Schedule", icon: CalendarDays },
-  { to: "/student/assignments", label: "Assignments", icon: ClipboardCheck },
-  { to: "/student/portfolio", label: "Portfolio", icon: Image },
-];
-const adminNav = [
-  { to: "/admin", label: "Admin overview", icon: CircleGauge },
-  { to: "/admin/students", label: "Students", icon: Users },
-  { to: "/admin/classes", label: "Class management", icon: BookOpen },
-  { to: "/admin/critiques", label: "Critique board", icon: Palette },
-];
 const statusLabels: Record<CritiqueStatus, string> = {
   "to-review": "To review",
   "in-critique": "In critique",
@@ -142,88 +128,31 @@ function PageHeading({
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const location = useLocation();
-  const renderLinks = (items: typeof studentNav) =>
-    items.map(({ to, label, icon: Icon }) => {
-      const active =
-        to === "/student" || to === "/admin"
-          ? location.pathname === to
-          : location.pathname.startsWith(to);
-      return (
-        <NavLink
-          key={to}
-          to={to}
-          onClick={onNavigate}
-          className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
-        >
-          <Icon className="size-4" aria-hidden="true" />
-          <span>{label}</span>
-        </NavLink>
-      );
-    });
-  return (
-    <div className="flex h-full flex-col bg-sidebar p-4 text-sidebar-foreground">
-      <Link
-        to="/student"
-        onClick={onNavigate}
-        className="mb-7 flex items-center gap-3 px-2 py-1"
-      >
-        <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-          <Palette className="size-5" />
-        </span>
-        <span>
-          <span className="block font-display text-xl leading-none">
-            School
-          </span>
-          <span className="mt-1 block text-[10px] uppercase tracking-[0.16em] text-sidebar-foreground/55">
-            College of Art
-          </span>
-        </span>
-      </Link>
-      <ScrollArea className="min-h-0 flex-1">
-        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">
-          Student
-        </p>
-        <nav className="space-y-1" aria-label="Student navigation">
-          {renderLinks(studentNav)}
-        </nav>
-        <Separator className="my-5 bg-sidebar-border" />
-        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">
-          Administration
-        </p>
-        <nav className="space-y-1" aria-label="Administration navigation">
-          {renderLinks(adminNav)}
-        </nav>
-      </ScrollArea>
-      <div className="mt-4 rounded-2xl border border-sidebar-border bg-sidebar-accent/60 p-3">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-9">
-            <AvatarFallback className="bg-[#e6b86e] text-[#342139]">
-              CV
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">Clara Voss</p>
-            <p className="truncate text-xs text-sidebar-foreground/55">
-              Painting · Year 3
-            </p>
-          </div>
-          <Settings className="size-4 text-sidebar-foreground/45" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("school-navigation:collapsed") === "true",
+  );
+  const changeSidebar = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    localStorage.setItem("school-navigation:collapsed", String(collapsed));
+  };
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-sidebar-border md:block">
-        <SidebarNav />
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 hidden border-r border-sidebar-border transition-[width] duration-200 motion-reduce:transition-none md:block ${sidebarCollapsed ? "w-[76px]" : "w-72"}`}
+      >
+        <AppSidebar
+          config={schoolNavigation}
+          brand={schoolBrand}
+          profile={schoolProfile}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={changeSidebar}
+        />
       </aside>
-      <div className="md:pl-64">
+      <div
+        className={`transition-[padding] duration-200 motion-reduce:transition-none ${sidebarCollapsed ? "md:pl-[76px]" : "md:pl-72"}`}
+      >
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -246,7 +175,13 @@ function AppLayout() {
                     Navigate student and administration demo pages.
                   </SheetDescription>
                 </SheetHeader>
-                <SidebarNav onNavigate={() => setMobileOpen(false)} />
+                <AppSidebar
+                  config={schoolNavigation}
+                  brand={schoolBrand}
+                  profile={schoolProfile}
+                  mobile
+                  onNavigate={() => setMobileOpen(false)}
+                />
               </SheetContent>
             </Sheet>
             <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
